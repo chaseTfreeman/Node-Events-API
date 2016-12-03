@@ -20,14 +20,14 @@ var apiConnectInfo = {
   "status": apiInfo.status
 }
 
-// db.put('data',
-//   {
-//     "name": "Interview for sweet dev job",
-//     "start": "2016-10-30T20:44:49.100Z",
-//     "end": "2016-10-30T20:44:49.100Z",
-//     "id": "659ab379-083f-4414-a73a-aa593c3f9892"
-//   }
-// );
+db.put('data',
+  {
+    "name": "Interview for sweet dev job",
+    "start": "2016-10-30T20:44:49.100Z",
+    "end": "2016-10-30T20:44:49.100Z",
+    "eventId": "659ab379-083f-4414-a73a-aa593c3f9892"
+  }
+);
 
 // ROUTES
 // GET/ -- Return API Title, Version, & Status form package.Json file
@@ -52,6 +52,7 @@ app.get('/events', function(req, res){
     else {
       res.write(',');
     }
+    console.log(data);
     res.write(JSON.stringify(data.value));
     is_first = false;
   })
@@ -66,19 +67,29 @@ app.get('/events', function(req, res){
     })
   });
 
-//GET /events/:id
+//GET /events/:event_id
 // Should return json for a specific event
-app.get('/events/:id', function(req, res){
-  console.log(res);
 
-    db.get(req.params.id, function(error, data){
+// get the id from the url, then run db.get on levelDB's to query all of
+ // the "data" keys for any key:value pair that has the same value as the req.params.event_id
+
+
+app.get('/events/:event_id', function(req, res){
+
+    db.get('data', function(error, data){
       if (error){
         res.writeHead(404, {'content-type': 'text/plain'});
-        res.end('Not Found');
+        res.end('Not Found')
         return;
       }
-      res.setHeader('content-type', 'application/json');
+      db.createReadStream()
+      .on('data', function(data){
+        console.log(data.value.eventId);
+        if (data.value.eventId.toString() == req.params.event_id )
+        res.setHeader('content-type', 'application/json');
         res.send(data);
+    })
+
     });
 });
 
