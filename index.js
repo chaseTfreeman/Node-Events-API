@@ -22,10 +22,10 @@ var apiConnectInfo = {
 
 db.put('data',
   {
-    "name": "Interview for sweet dev job",
+    "name": "Test",
     "start": "2016-10-30T20:44:49.100Z",
     "end": "2016-10-30T20:44:49.100Z",
-    "eventId": "659ab379-083f-4414-a73a-aa593c3f9892"
+    "eventId": "111111-111111"
   }
 );
 
@@ -84,10 +84,13 @@ app.get('/events/:event_id', function(req, res){
       }
       db.createReadStream()
       .on('data', function(data){
-        console.log(data.value.eventId);
-        if (data.value.eventId.toString() == req.params.event_id )
+        if (data.value.eventId.toString() == req.params.event_id ){
         res.setHeader('content-type', 'application/json');
-        res.send(data);
+        res.send(data)}
+        else if (data.value.eventId.toString() != req.params.event_id ) {
+          res.status(404).end('Not Found')
+          return;
+        }
     })
 
     });
