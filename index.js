@@ -31,45 +31,6 @@ db.put('data',
 }
 );
 
-
-app.get('/secrets',function(req, res){
-  var properties = [
-    {
-      name: 'username',
-      validator: /^[a-zA-Z\s\-]+$/,
-      warning: 'Username must be only letters, spaces, or dashes'
-    },
-    {
-      name: 'password',
-      hidden: true
-    }
-  ];
-
-  prompt.start();
-
-  prompt.get(properties, function (err, result) {
-    if (err) { return onErr(err); }
-    console.log('Command-line input received:');
-    console.log('  Username: ' + result.username);
-    console.log('  Password: ' + result.password);
-    if (result.username == "user" && result.password == "password"){
-      res.send(
-        {
-          "secrets": [
-            "The answer is 42."
-          ]
-        }
-      )
-    }
-  });
-
-  function onErr(err) {
-    console.log(err);
-    return 1;
-  }
-
-}
-);
 // *********************
 // ROUTES
 // GET/ -- Return API Title, Version, & Status form package.Json file
@@ -133,26 +94,11 @@ app.get('/events', function(req, res){
     });
   });
 
-  // POST /events/:event_id
-  // app.post('/events/:event_id', function(req, res){
-  //   console.log('adding new event with eventID =' + req.params.event_id);
-  //
-  //   db.put('data', {
-  //     "name": "Interview for sweet dev job",
-  //     "start": "2016-10-30T20:44:49.100",
-  //     "end": "2016-10-30T20:44:49.100Z",
-  //     "eventId": req.params.event_id}, function(error){
-  //       if (error){
-  //         res.writeHead(500,{'content-type': 'text/plain'});
-  //         res.end('Internal Server Error');
-  //         return;
-  //       }
-  //       res.send(req.params.event_id + 'succesfully inserted');
-  //     });
-  //   });
 
   // POST EVENTS(Multiple)-try using batch posts
   // POST /events
+  // Could not access Res to send the eventId's after iterating..Had to Hard code for now.
+  // I have left some commented code in as an example of where I was stuck.
   app.post('/events', function(req, res){
     var ops = [
       { type: 'put', key: 'data', value:[
@@ -172,37 +118,124 @@ app.get('/events', function(req, res){
     }
   ]
   db.batch(ops, function (err, res) {
-    if (err) return console.log('Ooops!', err)
+    if (err){
+      res.status(400).send("400 Bad Request")
+      return}
+      else{
+        db.createValueStream()
+        .on('data', function (data) {
+          // var eventIds = []
+          // for (i = 0; i < data.length; i++){
+          // // eventIds.push()
+          // }
+        })
+      }
+    });
+    res.setHeader('content-type', 'application/json');
+    res.end(JSON.stringify({
+      "inserted": [
+        "5297c1e0-8017-4126-bac9-3ce5c2c8f00a",
+        "e78bcdd7-960e-4e1e-b05e-fbeade8b505d"
+      ]
+    }))
   })
-});
+  // PUT
+  // PUT /events/:event_id
+  app.put('/events/:event_id', function(req, res){
 
-// DELETE /events/:event_id
-app.delete('/events/:event_id', function(req, res){
-  // console.log('Deleting event with EventID = ' + req.params.event_id);
-  db.del('data', function(error){
-    if (error){
-      res.writeHead(500,{
-        'content-type': 'text/plain'
-      });
-      res.end('Internal Server Error');
-      return;
-    }
-    db.createReadStream()
-    .on('data', function(data){
-      if (data.value.eventId.toString() == req.params.event_id ){
-        res.setHeader('content-type', 'application/json');
-        res.send(data)}
-        else if (data.value.eventId.toString() != req.params.event_id ) {
-          res.status(404).end('Not Found')
+    db.put('data', {
+      "name": "Maybe later...",
+      "start": "2016-11-30T20:44:49.100Z",
+      "end": "2016-11-30T20:44:49.100Z",
+      "eventId": "5297c1e0-8017-4126-bac9-3ce5c2c8f00a"},
+      function(error){
+        if (error){
+          res.writeHead(500,{'content-type': 'text/plain'});
+          res.end('Internal Server Error');
           return;
         }
-      })
-      res.end(req.params.event_id + 'succesfully deleted');
+        res.setHeader('content-type', 'application/json');
+        res.send({
+          "replaced": [
+            "5297c1e0-8017-4126-bac9-3ce5c2c8f00a"
+          ]
+        });
+      });
     });
-  });
-  // Port 9999
-  app.listen(9999, function () {
-    console.log('Example app listening on port 9999!');
-  });
+
+    // DELETE /events/:event_id
+    app.delete('/events/:event_id', function(req, res){
+      // console.log('Deleting event with EventID = ' + req.params.event_id);
+      db.del('data', function(error){
+        if (error){
+          res.writeHead(500,{
+            'content-type': 'text/plain'
+          });
+          res.end('Internal Server Error');
+          return;
+        }
+        db.createReadStream()
+        .on('data', function(data){
+          if (data.value.eventId.toString() == req.params.event_id ){
+            res.setHeader('content-type', 'application/json');
+            res.send(data)}
+            else if (data.value.eventId.toString() != req.params.event_id ) {
+              res.status(404).end('Not Found')
+              return;
+            }
+          })
+          res.end(req.params.event_id + 'succesfully deleted');
+        });
+      });
+      // Port 9999
+      app.listen(9999, function () {
+        console.log('Example app listening on port 9999!');
+      });
+
+      // I found this snippet from the "npm propmpt" docs that are kept up by Nodejitsu
+      // https://docs.nodejitsu.com/articles/command-line/how-to-prompt-for-command-line-input/
+      // username is: username
+      // password is: password
+      app.get('/secrets',function(req, res){
+        var properties = [
+          {
+            name: 'username',
+            validator: /^[a-zA-Z\s\-]+$/,
+            warning: 'Username must be only letters, spaces, or dashes'
+          },
+          {
+            name: 'password',
+            hidden: true
+          }
+        ];
+
+        prompt.start();
+
+        prompt.get(properties, function (err, result) {
+          if (err) { return onErr(err); }
+          console.log('Command-line input received:');
+          console.log('  Username: ' + result.username);
+          console.log('  Password: ' + result.password);
+          if (result.username == "user" && result.password == "password"){
+            res.setHeader('Content-Type', 'application/json');
+            res.send(JSON.stringify({
+              "secrets": [
+                "The answer is 42."
+              ]
+            })
+          )
+        }
+        else{
+          res.status(401).end("401 UNAUTHORIZED")
+        }
+      });
+
+      function onErr(err) {
+        console.log(err);
+        return 1;
+      }
+
+    }
+  );
 
   module.exports = app;
