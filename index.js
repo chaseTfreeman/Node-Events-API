@@ -4,8 +4,8 @@ var express = require('express')
 , path = require('path')
 , methodOverride = require('method-override')
 , errorHandler = require('error-handler')
-, levelup = require('levelup')
-, jwt = require('jsonwebtoken')
+, levelup = require('levelup');
+var prompt = require('prompt');
 var apiInfo = require('./package.json')
 var app = express();
 var url = require('url')
@@ -13,6 +13,7 @@ app.set('port', process.env.PORT || 9999);
 
 app.use(methodOverride());
 app.use(bodyParser.json());
+
 
 var db = levelup('./event', {valueEncoding: 'json'});
 var apiConnectInfo = {
@@ -30,10 +31,46 @@ db.put('data',
 }
 );
 
-// authentication
 
+app.get('/secrets',function(req, res){
+  var properties = [
+    {
+      name: 'username',
+      validator: /^[a-zA-Z\s\-]+$/,
+      warning: 'Username must be only letters, spaces, or dashes'
+    },
+    {
+      name: 'password',
+      hidden: true
+    }
+  ];
 
+  prompt.start();
 
+  prompt.get(properties, function (err, result) {
+    if (err) { return onErr(err); }
+    console.log('Command-line input received:');
+    console.log('  Username: ' + result.username);
+    console.log('  Password: ' + result.password);
+    if (result.username == "user" && result.password == "password"){
+      res.send(
+        {
+          "secrets": [
+            "The answer is 42."
+          ]
+        }
+      )
+    }
+  });
+
+  function onErr(err) {
+    console.log(err);
+    return 1;
+  }
+
+}
+);
+// *********************
 // ROUTES
 // GET/ -- Return API Title, Version, & Status form package.Json file
 app.get('/', function (req, res) {
