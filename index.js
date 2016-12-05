@@ -4,8 +4,8 @@ var express = require('express')
 , path = require('path')
 , methodOverride = require('method-override')
 , errorHandler = require('error-handler')
-,levelup = require('levelup');
-var crypto = require('crypto')
+, levelup = require('levelup')
+, jwt = require('jsonwebtoken')
 var apiInfo = require('./package.json')
 var app = express();
 var url = require('url')
@@ -21,14 +21,18 @@ var apiConnectInfo = {
   "status": apiInfo.status
 }
 
-// db.put('data',
-// {
-//   "name": "Test",
-//   "start": "2016-10-30T20:44:49.100Z",
-//   "end": "2016-10-30T20:44:49.100Z",
-//   "eventId": "111111-111111"
-// }
-// );
+db.put('data',
+{
+  "name": "Interview for sweet dev job",
+  "start": "2016-10-30T20:44:49.100Z",
+  "end": "2016-10-30T20:44:49.100Z",
+  "eventId": "111111-111111"
+}
+);
+
+// authentication
+
+
 
 // ROUTES
 // GET/ -- Return API Title, Version, & Status form package.Json file
