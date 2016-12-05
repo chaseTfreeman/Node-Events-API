@@ -22,15 +22,6 @@ var apiConnectInfo = {
   "status": apiInfo.status
 }
 
-db.put('data',
-{
-  "name": "Interview for sweet dev job",
-  "start": "2016-10-30T20:44:49.100Z",
-  "end": "2016-10-30T20:44:49.100Z",
-  "eventId": "111111-111111"
-}
-);
-
 // *********************
 // ROUTES
 // GET/ -- Return API Title, Version, & Status form package.Json file
