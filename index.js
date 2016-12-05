@@ -5,6 +5,7 @@ var express = require('express')
 , methodOverride = require('method-override')
 , errorHandler = require('error-handler')
 ,levelup = require('levelup');
+var crypto = require('crypto')
 var apiInfo = require('./package.json')
 var app = express();
 var url = require('url')
@@ -20,14 +21,14 @@ var apiConnectInfo = {
   "status": apiInfo.status
 }
 
-db.put('data',
-{
-  "name": "Test",
-  "start": "2016-10-30T20:44:49.100Z",
-  "end": "2016-10-30T20:44:49.100Z",
-  "eventId": "111111-111111"
-}
-);
+// db.put('data',
+// {
+//   "name": "Test",
+//   "start": "2016-10-30T20:44:49.100Z",
+//   "end": "2016-10-30T20:44:49.100Z",
+//   "eventId": "111111-111111"
+// }
+// );
 
 // ROUTES
 // GET/ -- Return API Title, Version, & Status form package.Json file
@@ -45,13 +46,13 @@ app.get('/events', function(req, res){
   db.createReadStream()
   .on('data', function(data){
     console.log(data.value)
-
-    if (is_first == true){
-      res.write('[');
-    }
-    else {
-      res.write(',');
-    }
+    //
+    // if (is_first == true){
+    //   res.write('[');
+    // }
+    // else {
+    //   res.write(',');
+    // }
     console.log(data);
     res.write(JSON.stringify(data.value));
     is_first = false;
@@ -63,7 +64,7 @@ app.get('/events', function(req, res){
     console.log('Closing DB Stream');})
     .on('end', function(){
       console.log('DB Stream Closed');
-      res.end(']');
+      res.end();
     })
   });
 
@@ -79,71 +80,88 @@ app.get('/events', function(req, res){
         res.end('Not Found')
         return;
       }
-      db.createReadStream()
+      db.createValueStream()
       .on('data', function(data){
-        if (data.value.eventId.toString() == req.params.event_id ){
-          res.setHeader('content-type', 'application/json');
-          res.send(data.value)}
-          else if (data.value.eventId.toString() != req.params.event_id ) {
-            res.status(404).end('Not Found')
-            return;
+        for (i = 0; i < data.length; i++){
+          if (data[i].eventId.toString() == req.params.event_id){
+            res.setHeader('content-type', 'application/json');
+            res.send(data[i])
           }
-        })
-      });
+        }
+      })
     });
+  });
 
-    // POST /events/:event_id
-    app.post('/events/:event_id', function(req, res){
-      console.log('adding new event with eventID =' + req.params.event_id);
-      var format =
+  // POST /events/:event_id
+  // app.post('/events/:event_id', function(req, res){
+  //   console.log('adding new event with eventID =' + req.params.event_id);
+  //
+  //   db.put('data', {
+  //     "name": "Interview for sweet dev job",
+  //     "start": "2016-10-30T20:44:49.100",
+  //     "end": "2016-10-30T20:44:49.100Z",
+  //     "eventId": req.params.event_id}, function(error){
+  //       if (error){
+  //         res.writeHead(500,{'content-type': 'text/plain'});
+  //         res.end('Internal Server Error');
+  //         return;
+  //       }
+  //       res.send(req.params.event_id + 'succesfully inserted');
+  //     });
+  //   });
 
-      // var options = {
-      //   type          : 'put'
-      //   , key           : 'data'
-      //   , value         : format
-      //     , keyEncoding   : 'binary'
-      //     , valueEncoding : 'json'
-      //   }
-        db.put('data', {
+  // POST EVENTS(Multiple)-try using batch posts
+  // POST /events
+  app.post('/events', function(req, res){
+    var ops = [
+      { type: 'put', key: 'data', value:[
+        {
           "name": "Interview for sweet dev job",
-          "start": "2016-10-30T20:44:49.100",
+          "start": "2016-10-30T20:44:49.100Z",
           "end": "2016-10-30T20:44:49.100Z",
-          "eventId": req.params.event_id}, function(error){
-          if (error){
-            res.writeHead(500,{'content-type': 'text/plain'});
-            res.end('Internal Server Error');
-            return;
-          }
-          res.send(req.params.event_id + 'succesfully inserted');
-        });
-      });
-// DELETE /events/:event_id
-      app.delete('/events/:event_id', function(req, res){
-        // console.log('Deleting event with EventID = ' + req.params.event_id);
-        db.del('data', function(error){
-          if (error){
-            res.writeHead(500,{
-              'content-type': 'text/plain'
-            });
-            res.end('Internal Server Error');
-            return;
-          }
-          db.createReadStream()
-          .on('data', function(data){
-            if (data.value.eventId.toString() == req.params.event_id ){
-              res.setHeader('content-type', 'application/json');
-              res.send(data)}
-              else if (data.value.eventId.toString() != req.params.event_id ) {
-                res.status(404).end('Not Found')
-                return;
-              }
-            })
-          res.end(req.params.event_id + 'succesfully deleted');
-        });
-      });
-      // Port 9999
-      app.listen(9999, function () {
-        console.log('Example app listening on port 9999!');
-      });
+          "eventId": "5297c1e0-8017-4126-bac9-3ce5c2c8f00a"
+        },
+        {
+          "name": "Another event",
+          "start": "2016-10-25T20:44:49.100Z",
+          "end": "2016-10-25T20:44:49.100Z",
+          "eventId": "e78bcdd7-960e-4e1e-b05e-fbeade8b505d"
+        }
+      ]
+    }
+  ]
+  db.batch(ops, function (err, res) {
+    if (err) return console.log('Ooops!', err)
+  })
+});
 
-      module.exports = app;
+// DELETE /events/:event_id
+app.delete('/events/:event_id', function(req, res){
+  // console.log('Deleting event with EventID = ' + req.params.event_id);
+  db.del('data', function(error){
+    if (error){
+      res.writeHead(500,{
+        'content-type': 'text/plain'
+      });
+      res.end('Internal Server Error');
+      return;
+    }
+    db.createReadStream()
+    .on('data', function(data){
+      if (data.value.eventId.toString() == req.params.event_id ){
+        res.setHeader('content-type', 'application/json');
+        res.send(data)}
+        else if (data.value.eventId.toString() != req.params.event_id ) {
+          res.status(404).end('Not Found')
+          return;
+        }
+      })
+      res.end(req.params.event_id + 'succesfully deleted');
+    });
+  });
+  // Port 9999
+  app.listen(9999, function () {
+    console.log('Example app listening on port 9999!');
+  });
+
+  module.exports = app;
